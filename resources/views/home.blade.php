@@ -30,15 +30,34 @@
             </div>
 
             <div class="flex items-center gap-6 order-2 md:order-3">
-                <a href="#" class="flex items-center gap-2 text-slate-300 hover:text-rose-500 transition font-medium">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                    <span class="hidden sm:inline">Quero Jogar</span>
-                </a>
-                
-                <a href="#" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded-full transition shadow-lg shadow-indigo-500/30">
-                    Entrar
-                </a>
-            </div>
+    
+    <a href="{{ route('favoritos.index') }}" class="flex items-center gap-2 text-slate-300 hover:text-rose-500 transition font-medium">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
+    <span class="hidden sm:inline">Quero Jogar</span>
+    </a>
+
+    @guest
+        <a href="{{ route('login') }}" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold py-2 px-6 rounded-full transition shadow-lg shadow-indigo-500/30">
+            Entrar
+        </a>
+    @endguest
+
+    @auth
+        <div class="flex items-center gap-4">
+            <span class="text-emerald-400 font-bold hidden sm:inline">
+                Olá, {{ Auth::user()->name }}
+            </span>
+            
+            <form action="#" method="POST" class="inline">
+                @csrf
+                <button type="submit" class="text-slate-400 hover:text-rose-500 text-sm font-medium transition">
+                    Sair
+                </button>
+            </form>
+        </div>
+    @endauth
+
+</div>
 
         </div>
     </nav>
@@ -56,34 +75,24 @@
                     @foreach($jogos as $jogo)
                     <article class="bg-slate-800 rounded-2xl overflow-hidden shadow-lg border border-slate-700 hover:border-indigo-500 transition group flex flex-col justify-between">
                         
-                        <div>
-                            <div class="h-64 relative overflow-hidden bg-slate-700">
-                                @if(!empty($jogo['background_image']))
-                                    <img src="{{ $jogo['background_image'] }}" alt="Capa de {{ $jogo['name'] }}" class="w-full h-full object-cover group-hover:scale-105 transition duration-500">
-                                @endif
-                                
-                                <div class="absolute top-3 right-3 bg-emerald-500 text-white font-black text-sm px-3 py-1 rounded-lg shadow-md">
-                                    {{ $jogo['rating'] ?? 'N/A' }}
-                                </div>
-                            </div>
-                            
-                            <div class="p-5">
-                                <p class="text-indigo-400 text-xs font-bold uppercase tracking-wider mb-1">
-                                    Lançamento: {{ !empty($jogo['released']) ? \Carbon\Carbon::parse($jogo['released'])->format('Y') : 'Data Indisponível' }}
-                                </p>
-                                
-                                <h3 class="text-xl font-bold text-white mb-2 line-clamp-2" title="{{ $jogo['name'] }}">
-                                    {{ $jogo['name'] }}
-                                </h3>
-                            </div>
-                        </div>
+                        <a href="{{ route('site.detalhes', $jogo['id']) }}" class="block flex-grow hover:opacity-80 transition">
+    
+                    <div class="h-64 relative overflow-hidden bg-slate-700">
+                        <img src="{{ $jogo['background_image'] ?? '' }}" alt="Capa" class="w-full h-full object-cover">
+                    </div>
 
-                        <div class="p-5 pt-0 mt-auto">
-                            <button onclick="adicionarAosFavoritos({{ $jogo['id'] }}, this)" class="w-full bg-slate-700 hover:bg-indigo-600 text-white font-medium py-2 rounded-xl transition flex items-center justify-center gap-2">
-                                <svg class="w-5 h-5 icon-heart" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                                <span>Quero Jogar</span>
-                            </button>
-                        </div>
+                    <div class="p-5 pb-2">
+                        <h3 class="text-xl font-bold text-white mb-2 line-clamp-2">
+                            {{ $jogo['name'] }}
+                        </h3>
+                    </div>
+                </a>
+
+                <div class="p-5 pt-0 mt-auto">
+                    <button onclick="adicionarAosFavoritos({{ $jogo['id'] }}, '{{ addslashes($jogo['name']) }}', '{{ $jogo['background_image'] ?? '' }}', this)" class="w-full bg-slate-700 hover:bg-indigo-600 text-white font-medium py-2 rounded-xl transition flex items-center justify-center gap-2">
+                        <span>Quero Jogar</span>
+                    </button>
+                </div>
                     </article>
                     @endforeach
                 @else
@@ -98,41 +107,39 @@
     </main>
 
     <script>
-        function adicionarAosFavoritos(jogoId, botao) {
-            // Criação do objeto AJAX conforme PDF [cite: 144, 149]
-            let xhr = new XMLHttpRequest();
-            
-            // Simulação de URL - Atualizaremos quando o ApiController for construído 
-            let url = '/api/favoritos/adicionar/' + jogoId;
-            
-            // Abrindo conexão (POST para envio de dados, assíncrono = true) [cite: 150, 163]
-            xhr.open('POST', url, true);
-            
-            // Configurações de cabeçalho para Laravel e JSON
-            xhr.setRequestHeader('Content-Type', 'application/json');
-            xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
-            
-            // Listener que aguarda a resposta do servidor [cite: 208, 209]
-            xhr.onreadystatechange = function() {
-                // Só verifica se o servidor terminou de enviar a resposta [cite: 262]
-                if(xhr.readyState === 4) {
-                    // Resposta bem sucedida [cite: 263, 282]
-                    if(xhr.status === 200 || xhr.status === 201) {
-                        // Feedback visual (atualiza o botão sem piscar a tela)
-                        botao.classList.remove('bg-slate-700');
-                        botao.classList.add('bg-rose-600', 'hover:bg-rose-500');
-                        botao.querySelector('span').innerText = 'Na Lista!';
-                        botao.querySelector('svg').setAttribute('fill', 'currentColor');
-                    } else {
-                        // Exibe alerta de erro, idêntico à documentação base [cite: 238, 291]
-                        alert("ATENÇÃO, status=" + xhr.status);
-                    }
+    function adicionarAosFavoritos(apiId, nome, imagem, botao) {
+        // 1. Prepara os dados que vamos enviar para o Laravel
+        let dados = JSON.stringify({
+            api_id: apiId,
+            nome: nome,
+            imagem_capa: imagem
+        });
+
+        // 2. Cria o objeto AJAX obrigatório do projeto
+        let xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/favoritos/adicionar', true);
+        
+        // 3. Cabeçalhos de segurança do Laravel
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('X-CSRF-TOKEN', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+        
+        // 4. O que fazer quando o Laravel responder?
+        xhr.onreadystatechange = function() {
+            if(xhr.readyState === 4) {
+                if(xhr.status === 200 || xhr.status === 201) {
+                    // Sucesso! Muda a cor do botão
+                    botao.classList.remove('bg-slate-700');
+                    botao.classList.add('bg-rose-600');
+                    botao.querySelector('span').innerText = 'Na Lista!';
+                } else if(xhr.status === 401) {
+                    alert("Você precisa fazer login para adicionar aos favoritos!");
                 }
-            };
-            
-            // Envia a requisição [cite: 199, 211, 242]
-            xhr.send(JSON.stringify({ id: jogoId }));
-        }
-    </script>
+            }
+        };
+        
+        // 5. Dispara a requisição
+        xhr.send(dados);
+    }
+</script>
 </body>
 </html>

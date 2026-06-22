@@ -3,24 +3,43 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Services\RawgApiService; 
+use Illuminate\Support\Facades\Http;
 
 class SiteController extends Controller
 {
-    protected $rawgApi;
-
-    // Injetando o serviço no Controller
-    public function __construct(RawgApiService $rawgApi)
-    {
-        $this->rawgApi = $rawgApi;
-    }
-
+    
+    // FUNÇÃO DA PÁGINA INICIAL (Melhores jogos de 2025 e 2026)
+    
     public function index()
     {
-        // Pede os dados processados para o Service
-        $jogos = $this->rawgApi->buscarJogosDestaque();
+        $response = Http::timeout(5)->get('https://api.rawg.io/api/games', [
+            'key' => '53d8dc542f93443caf8445a5414b4841', 
+            'page_size' => 8,
+            'ordering' => '-rating', 
+            'dates' => '2025-01-01,2026-12-31' 
+        ]);
 
-        // Entrega os dados prontos para a View renderizar o HTML
+        $jogos = $response->json()['results'] ?? [];
+
         return view('home', compact('jogos'));
+    }
+
+    
+    // 2. FUNÇÃO DE DETALHES (Abre a tela de avaliação)
+    
+    public function detalhes($id)
+    {
+        $response = Http::timeout(5)->get("https://api.rawg.io/api/games/{$id}", [
+            'key' => '53d8dc542f93443caf8445a5414b4841' 
+        ]);
+
+        $jogo = $response->json() ?? [];
+
+        // Proteção: Se a API der qualquer instabilidade, devolve pra Home
+        if (!isset($jogo['name'])) {
+            return redirect()->route('site.home');
+        }
+
+        return view('detalhes', compact('jogo'));
     }
 }
